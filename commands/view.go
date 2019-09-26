@@ -2,8 +2,11 @@ package commands
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"regexp"
+	"strings"
 )
 
 type ByteSize float64
@@ -52,13 +55,48 @@ type Node struct {
 }
 
 type View struct {
-	url string
+	url           string
+	filterPattern *regexp.Regexp
+	ignoreCase    bool
 }
 
-func NewView(u string) *View {
-	return &View{
+func NewView(u string, args []string) (*View, error) {
+	view := &View{
 		url: u,
 	}
+
+	err := view.parseArgs(args)
+	return view, err
+}
+
+func (v *View) parseArgs(args []string) error {
+	length := len(args)
+	if length <= 0 {
+		return nil
+	}
+
+	if length < 3 || args[0] != "|" || args[1] != "grep" {
+		return errors.New(fmt.Sprintf("invalid arguments for view command: %s", strings.Join(args, " ")))
+	}
+
+	pattern := ""
+	if args[2] == "-i" {
+		if length == 3 {
+			return errors.New("empty search pattern")
+		}
+
+		pattern = "(?i)" + strings.Join(args[3:], " ")
+	} else {
+		pattern = strings.Join(args[2:], " ")
+	}
+
+	reg, err := regexp.Compile(pattern)
+	if err != nil {
+		return err
+	}
+
+	v.filterPattern = reg
+	return nil
 }
 
 func list(url string) ([]Node, error) {
@@ -85,12 +123,24 @@ func list(url string) ([]Node, error) {
 	return nodes, nil
 }
 
+func (v *View) accept(name string) bool {
+	if v.filterPattern == nil {
+		return true
+	}
+
+	return v.filterPattern.MatchString(name)
+}
+
 func (v *View) Execute() error {
 	content, err := list(v.url)
 	if err != nil {
 		return err
 	}
 	for i, n := range content {
+		if !v.accept(n.Name) {
+			continue
+		}
+
 		if n.IsDir {
 			fmt.Printf("%d: %s\n", i, n.Name)
 		} else {

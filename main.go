@@ -22,7 +22,7 @@ func getCommand(c string) (commands.Commander, error) {
 	args := regexp.MustCompile("\\s+").Split(c, -1)
 	switch args[0] {
 	case "ls":
-		return commands.NewView(currentFolder), nil
+		return commands.NewView(currentFolder, args[1:])
 	case "cd":
 		if len(args) <= 1 {
 			return nil, ErrInvalidCommandArgs
@@ -63,9 +63,7 @@ func runLoop() error {
 			break
 		} else if err != nil {
 			fmt.Println(err)
-		}
-
-		if cmd != nil {
+		} else if cmd != nil {
 			err = executeCommand(cmd)
 			if err != nil {
 				fmt.Println(err)
