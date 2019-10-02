@@ -32,7 +32,11 @@ func getCommand(c string) (commands.Commander, error) {
 		if len(args) <= 1 {
 			return nil, ErrInvalidCommandArgs
 		}
-		return commands.NewDownload(currentFolder, args[1]), nil
+		storePath := ""
+		if len(args) >= 2 {
+			storePath = args[2]
+		}
+		return commands.NewDownload(currentFolder, args[1], storePath), nil
 	case "exit":
 		return nil, ErrExit
 	case "":
