@@ -33,7 +33,7 @@ func getCommand(c string) (commands.Commander, error) {
 			return nil, ErrInvalidCommandArgs
 		}
 		storePath := ""
-		if len(args) >= 2 {
+		if len(args) >= 3 {
 			storePath = args[2]
 		}
 		return commands.NewDownload(currentFolder, args[1], storePath), nil
